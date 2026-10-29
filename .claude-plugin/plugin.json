@@ -1,0 +1,8 @@
+{
+  "name": "guild-hall",
+  "version": "0.1.0",
+  "description": "Turns your Claude session into a 16-bit fantasy guild hall: XP, quests, spells, and unlockable themes.",
+  "types": "./types/index.d.ts",
+  "license": "MIT",
+  "icon": "./.claude-plugin/icon.png"
+}

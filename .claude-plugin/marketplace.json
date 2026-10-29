@@ -1,0 +1,5 @@
+{
+  "name": "guild-hall",
+  "owner": { "name": "The Guild Hall contributors" },
+  "plugins": [{ "name": "guild-hall", "source": "./" }]
+}
