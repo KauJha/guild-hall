@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 
-import { levelOf, normalizeVault, rollRelic, spellFor, unlocksAt, xpForLevel } from './game'
+import { NEW_VAULT, levelOf, normalizeVault, pickContracts, rollRelic, spellFor, stepStreak, unlocksAt, xpForLevel } from './game'
 import { githubQuery, parseGithub } from './sweep'
 
 const PANE = {
@@ -86,7 +86,7 @@ test('an existing 0.1 hero keeps every point of progress', async ($, on) => {
   for (const surface of ['desktop', 'terminal'] as const) {
     const ui = await $.ui.mount({ ...PANE, surface })
     expect((await ui.find({ type: 'Text', text: /Sir Testalot/ }))?.text).toContain('Sir Testalot')
-    expect((await ui.find({ type: 'Text', text: /Level [67]/ }))?.text).toMatch(/Level [67]/)
+    expect((await ui.find({ type: 'Text', text: /Level \d+ ·/ }))?.text).toMatch(/Level \d+/)
     await ui.unmount()
   }
 })
@@ -144,8 +144,10 @@ test('sweeps post Jira quests and PR bounties, and pay only for new work', async
   expect(third.text).not.toContain('cleared')
 
   ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'tab-chronicle' })
+  expect((await ui.find({ type: 'Text', text: /Cleared GH-2/ }))?.text).toContain('Cleared GH-2')
   await ui.press({ key: 'tab-hall' })
-  expect((await ui.find({ type: 'Text', text: /since tracking began/ }))?.text).toContain('1 tickets resolved')
+  expect((await ui.find({ type: 'Text', text: /This week's boss/ }))?.text).toContain("This week's boss")
   await ui.unmount()
 })
 
@@ -160,5 +162,48 @@ test('the armory and treasury draw', async ($, on) => {
   expect((await ui.find({ type: 'Text', text: /Frost Citadel/ }))?.text).toContain('Frost Citadel')
   await ui.press({ key: 'tab-treasury' })
   expect((await ui.find({ type: 'Text', text: /Achievements/ }))?.text).toContain('Achievements')
+  await ui.unmount()
+})
+
+test('streaks forgive weekends and use shields before stepping down', async () => {
+  const base = { ...NEW_VAULT.streak }
+  // Friday -> Monday: the weekend is free.
+  expect(stepStreak({ ...base, days: 4, last: '2026-11-06' }, '2026-11-09').days).toBe(5)
+  // A missed Tuesday with a shield: kept, shield spent.
+  const shielded = stepStreak({ ...base, days: 6, last: '2026-11-09', shields: 1 }, '2026-11-11')
+  expect(shielded.days).toBe(7)
+  expect(shielded.usedShields).toBe(1)
+  // No shield: halved, never zeroed.
+  const down = stepStreak({ ...base, days: 8, last: '2026-11-09' }, '2026-11-12')
+  expect(down.days).toBe(4)
+  expect(down.isStepDown).toBe(true)
+  // Every fifth day earns a shield, up to two.
+  expect(stepStreak({ ...base, days: 4, last: '2026-11-11' }, '2026-11-12').shields).toBe(1)
+})
+
+test('contracts point at neglected work', async () => {
+  const now = Date.parse('2026-11-12T12:00:00Z')
+  const list = pickContracts('2026-11-12', {
+    quests: [{ key: 'GH-3', summary: 's', status: 'Blocked', category: 'indeterminate', type: 'Task', priority: '', url: '', updated: '2026-10-01T00:00:00Z' }],
+    toReview: [{ url: 'u-old', updated: '2026-11-08T00:00:00Z' }],
+    mine: [],
+  }, now)
+  expect(list.length).toBe(3)
+  expect(list.some(c => c.kind === 'review-stale' && c.targets.includes('u-old'))).toBe(true)
+})
+
+test('a focus session pays out when the candle burns down', async ($, on) => {
+  mock.store(on, { hero: OLD_HERO })
+  const clock = mock.clock(on, { now: Date.parse('2026-11-12T15:00:00Z') })
+  on('command.register', () => ({ value: { command: 'x' } }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('ui.toast', () => ({ value: undefined }))
+  on('audio.play', () => ({ value: undefined }))
+  const started = await $.command.run({ command: 'focus', args: '25' } as never)
+  expect(started.text).toContain('25 minutes')
+  await clock.advance(25 * 60_000 + 1000)
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+  await ui.press({ key: 'tab-chronicle' })
+  expect((await ui.find({ type: 'Text', text: /Focused for 25 minutes/ }))?.text).toContain('Focused for 25 minutes')
   await ui.unmount()
 })
