@@ -1,20 +1,22 @@
 # The Guild Hall
 
-A Claude mod that turns your Claude session into a 16-bit fantasy adventurers' guild.
+A Claude mod that turns your Claude session into a 16-bit fantasy adventurers' guild: your Jira tickets are quests, review requests are bounties, merged PRs and resolved tickets earn XP, loot and achievements.
 
-![The Guild Hall](docs/preview.png)
+![Day](docs/preview.png)
+![Night](docs/themes.png)
 
 ## What it does
 
-- **Guild Hall pane** beside the chat: an animated pixel-art hall (flickering torches, a guild banner, your wizard and familiar) with your name, level, title and XP bar.
-- **Quest Board:** Claude's own task list shows up as quests: posted, active, cleared.
-- **Spellbook:** every tool Claude runs is cast as a spell (`Read` is *Scry Scroll*, `Bash` is *Golem's Command*, a web search is *Consult the Oracle*, and so on).
-- **XP and levels:** earned from real work: successful tool calls, answered turns and cleared quests. Level-ups play a chiptune fanfare and show a toast.
-- **Armory:** six themes unlock as you level (Stone Guild Hall, Elven Grove, Dwarven Forge, Frost Citadel, Necromancer's Crypt, Celestial Observatory), plus an owl and a dragon whelp familiar.
-- **Status band** above the prompt with your level, XP and current quest.
-- **Narrator (optional, off by default):** lets Claude open replies with one short guild-master line. Code, commands and anything technical stay plain.
-
-![Themes](docs/themes.png)
+- **Guild Hall pane** beside the chat. An animated pixel-art hall that follows your Claude app's light or dark mode (a sunlit hall by day, torch-lit at night), with your hero, familiar, a quest board that fills with one note per open ticket, and a treasure chest that glows when you've found loot.
+- **Sweep the realm.** `/sweep`, the Sweep button, or automatically every 30 minutes:
+  - **Quests:** Jira tickets assigned to you, ranked (bugs are monster hunts, stories are sagas, blocked tickets are cursed, untouched ones gather cobwebs).
+  - **Bounties:** pull requests waiting on your review.
+  - **The forge:** your open PRs with their checks and review state.
+  - Tickets you resolve, PRs of yours that merge and reviews you give earn XP on the next sweep. The first sweep records what's already done, so old work is never paid twice.
+- **Rewards:** something unlocks at every level from 2 to 20 (themes, hats, robes, seven familiars, auras, titles), 22 relics to collect from loot drops, 16 achievements, and a daily streak boon.
+- **Spellbook:** every tool Claude runs is a spell (`Read` is *Scry Scroll*, `Bash` is *Golem's Command*).
+- **Side quests:** Claude's own task lists, shown alongside your real quests.
+- **Status band** above the prompt: level, XP, streak, quests, bounties.
 
 ## Install
 
@@ -32,28 +34,37 @@ claude plugin install guild-hall --marketplace KauJha/guild-hall
 
 In the Claude desktop app: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `KauJha/guild-hall`, then **Add plugin**.
 
-Answer `y` to add the marketplace, then pick a scope.
+To update an installed copy: `claude plugin update guild-hall`, then `/reload-plugins` in your session. Progress is kept.
+
+## What a sweep needs
+
+- **Jira:** an Atlassian connector connected in Claude. The mod finds it on its own.
+- **GitHub:** the [GitHub CLI](https://cli.github.com) installed and signed in (`gh auth login`).
+
+Either one alone works; the other section shows how to connect it.
 
 ## Use
 
-- `/guild` opens the Guild Hall pane (and brings back the band if you hid it).
-- **Armory** in the pane: rename your hero, equip unlocked themes.
-- **Narrator** and **Sound** toggles are in the pane.
+- `/guild` opens the Guild Hall. `/sweep` refreshes quests and bounties.
+- **Armory:** rename your hero, pick a hall theme, hat, robe, familiar and aura, choose day/night or "match the app", and turn auto-sweep and sound on or off.
+- **Treasury:** relics found and achievements.
 
-## XP rules
+## XP
 
 | Deed | XP |
 | --- | --- |
-| A tool call that succeeds | 1 |
-| An answered turn | 3 |
-| A quest posted (Claude creates a task) | 2 |
-| A quest cleared (a task is completed) | 20 |
+| Jira ticket resolved | 35 to 200 by type (bug 80, story 90, epic 200) |
+| Your PR merged | 60 |
+| A review you gave | 35 |
+| Claude task completed (side quest) | 20 |
+| Answered turn / successful tool call | 3 / 1 |
+| Daily boon | 25 × streak days (up to 7) |
 
 Level *n* takes `100 × n^1.5` XP.
 
 ## Privacy
 
-The mod has no network access of its own, calls no connectors or MCP servers, and holds no keys or tokens. It only watches events inside your own Claude session (tool names, task titles) and keeps your hero (name, XP, counters, settings) in the plugin's local store on your machine. Task titles are kept for the current session only.
+The mod holds no keys or tokens. A sweep reads Jira through your own Atlassian connector and GitHub through your own `gh` login, on your machine. What it keeps (your hero, your board's last snapshot, which tickets and PRs were already credited, relics) stays in the plugin's local store on your machine.
 
 ## License
 
